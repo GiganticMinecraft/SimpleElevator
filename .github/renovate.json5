@@ -5,7 +5,7 @@
     {
       "description": "Ignore Java updates: Minecraft 1.18.2 is fixed and must remain on Java 17.",
       "matchManagers": ["mise"],
-      "matchPackageNames": ["java"],
+      "matchPackageNames": ["java-jdk"],
       "enabled": false
     },
     {
