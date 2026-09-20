@@ -54,7 +54,8 @@ tasks.named('test', Test) {
 }
 
 processResources {
-    def resourceProperties = [version: project.version]
+    def pluginVersion = project.version.toString().replaceFirst('^v', '')
+    def resourceProperties = [version: pluginVersion]
     inputs.properties(resourceProperties)
 
     filesMatching('plugin.yml') {
