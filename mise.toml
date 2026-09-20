@@ -37,7 +37,7 @@ run = "ghasec"
 description = "Validate Renovate configuration"
 run = "renovate-config-validator --strict"
 
-[tasks.release-tag]
+[tasks.add-tag]
 description = "Create a signed release tag"
 usage = '''
 arg "<version>" help="Release version such as 1.0.0"
@@ -47,7 +47,7 @@ run = '''
 set -euo pipefail
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  echo "release-tag requires a Git-colocated checkout with a configured signing key" >&2
+  echo "add-tag requires a Git-colocated checkout with a configured signing key" >&2
   exit 1
 fi
 
@@ -66,7 +66,7 @@ fi
 git tag -s "$tag" -m "Release $tag"
 '''
 
-[tasks.release-push]
+[tasks.push-tag]
 description = "Push an existing signed release tag"
 usage = '''
 arg "<version>" help="Release version such as 1.0.0"
@@ -76,7 +76,7 @@ run = '''
 set -euo pipefail
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  echo "release-push requires a Git-colocated checkout with an origin remote" >&2
+  echo "push-tag requires a Git-colocated checkout with an origin remote" >&2
   exit 1
 fi
 

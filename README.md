@@ -118,13 +118,13 @@ Windowsでは、`py -m venv .venv`で仮想環境を作成します。
 
 ```shell
 # 署名付きタグを作成
-mise run release-tag 1.0.0
+mise add-tag 1.0.0
 
 # 必要に応じて署名を確認
 git tag -v v1.0.0
 
 # タグを push してリリース処理を開始
-mise run release-push 1.0.0
+mise push-tag 1.0.0
 ```
 
 タグの push 後、Java 17 でのビルド・テスト、JAR の SHA256 生成、GitHub artifact attestation、
