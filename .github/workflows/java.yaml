@@ -27,7 +27,9 @@ jobs:
       - name: Build and check
         id: gradle
         continue-on-error: true
-        run: mise run build
+        run: |
+          set -o pipefail
+          mise run build 2>&1 | tee /tmp/gradle.log
       - name: Generate report
         if: github.event_name == 'pull_request'
         env:
@@ -40,7 +42,13 @@ jobs:
             else
               echo '## :warning: Gradle build — failed'
               echo
-              echo 'See the workflow logs for details.'
+              echo '<details>'
+              echo '<summary>CI logs</summary>'
+              echo
+              echo '```text'
+              cat /tmp/gradle.log
+              echo '```'
+              echo '</details>'
             fi
           } | tee /tmp/gradle-result.md
       - name: Find existing PR comment
