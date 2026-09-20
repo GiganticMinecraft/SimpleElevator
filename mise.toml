@@ -1,5 +1,5 @@
 [tools]
-java = "temurin-17"
+java = "temurin-25"
 node = "24"
 "pypi:yamllint" = "1.37.1"
 "npm:markdownlint-cli2" = "0.23.2"
