@@ -34,7 +34,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 checkstyle {
-    toolVersion = '12.3.1'
+    toolVersion = '14.1.0'
     configFile = file('.github/checkstyle.xml')
 }
 
