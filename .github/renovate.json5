@@ -1,4 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>GiganticMinecraft/renovate-config"]
+  "extends": ["github>GiganticMinecraft/renovate-config"],
+  "packageRules": [
+    {
+      "description": "Ignore Java updates: Minecraft 1.18.2 is fixed and must remain on Java 17.",
+      "matchManagers": ["mise"],
+      "matchPackageNames": ["java"],
+      "enabled": false
+    },
+    {
+      "description": "Ignore Checkstyle updates: Minecraft 1.18.2 must remain on Java 17, so Checkstyle must stay on a Java 17-compatible version.",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["checkstyle", "com.puppycrawl.tools:checkstyle"],
+      "enabled": false
+    },
+    {
+      "description": "Ignore Paper API updates: the project is fixed to Minecraft 1.18.2.",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["io.papermc.paper:paper-api"],
+      "enabled": false
+    }
+  ]
 }

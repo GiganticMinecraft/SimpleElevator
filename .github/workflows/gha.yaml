@@ -34,26 +34,28 @@ jobs:
         env:
           GHASEC_DISABLE_OFFLINE_WARNING: "true"
           GHASEC_DISABLE_UPDATE_CHECK: "true"
-        run: mise run --raw lint-gha
+        run: |
+          set -o pipefail
+          mise run --raw lint-gha 2>&1 | tee /tmp/ghasec.log
       - name: Generate report
         if: github.event_name == 'pull_request'
         env:
-          GHASEC_DISABLE_OFFLINE_WARNING: "true"
-          GHASEC_DISABLE_UPDATE_CHECK: "true"
+          GHASEC_OUTCOME: ${{ steps.ghasec-log.outcome }}
         run: |
           {
             echo '<!-- ghasec -->'
-            result=$(ghasec --format markdown 2>&1) || true
-            if ! echo "$result" | grep -qE '^(## \[|Rule: )'; then
+            if [[ "$GHASEC_OUTCOME" == "success" ]]; then
               echo '## :white_check_mark: ghasec — no issues found'
             else
-              summary=$(echo "$result" | tail -1)
-              body=$(echo "$result" | head -n -1)
-              echo "## :warning: ghasec — ${summary}"
+              echo '## :warning: ghasec — issues found'
               echo
-              echo '---'
+              echo '<details>'
+              echo '<summary>CI logs</summary>'
               echo
-              echo "$body"
+              echo '```text'
+              cat /tmp/ghasec.log
+              echo '```'
+              echo '</details>'
             fi
           } | tee /tmp/ghasec-result.md
       - name: Find existing PR comment
