@@ -5,7 +5,7 @@ node = "24"
 "npm:markdownlint-cli2" = "0.23.2"
 # Renovateの依存するlibzip 3.2.2は旧版3.2.0にあったprovenance情報が確認できず、
 # miseのtrustPolicy=no-downgradeで止まるため、当該バージョンだけ例外にする。
-"npm:renovate" = { version = "44.103.6", allow_builds = ["re2"], trust_policy_excludes = [
+"npm:renovate" = { version = "44.103.6", trust_policy_excludes = [
   "@yarnpkg/libzip@3.2.2",
 ] }
 "github:koki-develop/ghasec" = "0.17.0"
