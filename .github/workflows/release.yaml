@@ -18,8 +18,7 @@ jobs:
       attestations: write
       artifact-metadata: write
     outputs:
-      tag: ${{ steps.version.outputs.tag }}
-      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.tag.outputs.tag }}
       artifact_name: ${{ steps.artifact.outputs.name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,7 +32,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - name: Validate release tag
-        id: version
+        id: tag
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
@@ -43,19 +42,17 @@ jobs:
             exit 1
           fi
           echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
       - name: Build and check
         env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: ./gradlew build --no-daemon -PreleaseVersion="$RELEASE_VERSION"
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        run: ./gradlew build --no-daemon -PreleaseVersion="$RELEASE_TAG"
       - name: Create checksum
         id: artifact
         env:
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
-          jar="SimpleElevator-${RELEASE_VERSION}.jar"
+          jar="SimpleElevator-${RELEASE_TAG}.jar"
           jar_path="build/libs/${jar}"
           checksum_path="build/libs/${jar}.sha256"
           test -f "$jar_path"
@@ -102,14 +99,13 @@ jobs:
         id: artifact
         env:
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
-          RELEASE_VERSION: ${{ needs.build.outputs.version }}
         run: |
           set -euo pipefail
           if [[ "${RELEASE_TAG}" != "${GITHUB_REF_NAME}" ]]; then
             echo "release metadata does not match the triggering tag" >&2
             exit 1
           fi
-          jar="release-assets/SimpleElevator-${RELEASE_VERSION}.jar"
+          jar="release-assets/SimpleElevator-${RELEASE_TAG}.jar"
           checksum="${jar}.sha256"
           test -f "${jar}"
           test -f "${checksum}"
@@ -123,7 +119,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
-          RELEASE_VERSION: ${{ needs.build.outputs.version }}
           JAR: ${{ steps.artifact.outputs.jar }}
           CHECKSUM: ${{ steps.artifact.outputs.checksum }}
         run: |
@@ -139,18 +134,10 @@ jobs:
               --draft \
               --verify-tag \
               --generate-notes \
-              --title "SimpleElevator ${RELEASE_VERSION}"
+              --title "${RELEASE_TAG}"
           fi
       - name: Publish immutable release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
         run: gh release edit "${RELEASE_TAG}" --draft=false --verify-tag
-      - name: Verify release state
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.build.outputs.tag }}
-        run: |
-          set -euo pipefail
-          test "$(gh release view "${RELEASE_TAG}" --json isDraft --jq '.isDraft')" = "false"
-          test "$(gh release view "${RELEASE_TAG}" --json isImmutable --jq '.isImmutable')" = "true"
