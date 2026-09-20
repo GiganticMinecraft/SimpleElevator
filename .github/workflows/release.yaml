@@ -1,0 +1,154 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*.*.*"
+permissions: {}
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Build and attest release
+    timeout-minutes: 15
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      artifact_name: ${{ steps.artifact.outputs.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        with:
+          version: '2026.9.11'
+          cache: true
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Validate release tag
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "release tag must have the form vMAJOR.MINOR.PATCH: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Build and check
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: ./gradlew build --no-daemon -PreleaseVersion="$RELEASE_VERSION"
+      - name: Create checksum
+        id: artifact
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          jar="SimpleElevator-${RELEASE_VERSION}.jar"
+          jar_path="build/libs/${jar}"
+          checksum_path="build/libs/${jar}.sha256"
+          test -f "$jar_path"
+          (
+            cd build/libs
+            sha256sum "$jar" > "${jar}.sha256"
+          )
+          echo "jar=${jar_path}" >> "$GITHUB_OUTPUT"
+          echo "checksum=${checksum_path}" >> "$GITHUB_OUTPUT"
+          mkdir -p release-assets
+          cp "${jar_path}" "release-assets/${jar}"
+          cp "${checksum_path}" "release-assets/${jar}.sha256"
+          echo "name=release-${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "path=release-assets" >> "$GITHUB_OUTPUT"
+      - name: Generate build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.artifact.outputs.jar }}
+          github-token: ${{ github.token }}
+      - name: Upload release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.path }}
+          if-no-files-found: error
+
+  release:
+    name: Publish immutable release
+    needs: build
+    timeout-minutes: 15
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: release-assets
+      - name: Verify release artifact
+        id: artifact
+        env:
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_TAG}" != "${GITHUB_REF_NAME}" ]]; then
+            echo "release metadata does not match the triggering tag" >&2
+            exit 1
+          fi
+          jar="release-assets/SimpleElevator-${RELEASE_VERSION}.jar"
+          checksum="${jar}.sha256"
+          test -f "${jar}"
+          test -f "${checksum}"
+          (
+            cd release-assets
+            sha256sum -c "$(basename "${checksum}")"
+          )
+          echo "jar=${jar}" >> "$GITHUB_OUTPUT"
+          echo "checksum=${checksum}" >> "$GITHUB_OUTPUT"
+      - name: Create or resume draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+          JAR: ${{ steps.artifact.outputs.jar }}
+          CHECKSUM: ${{ steps.artifact.outputs.checksum }}
+        run: |
+          set -euo pipefail
+          if draft_state=$(gh release view "${RELEASE_TAG}" --json isDraft --jq '.isDraft' 2>/dev/null); then
+            if [[ "${draft_state}" != "true" ]]; then
+              echo "release is already published; refusing to modify it: ${RELEASE_TAG}" >&2
+              exit 1
+            fi
+            gh release upload "${RELEASE_TAG}" "${JAR}" "${CHECKSUM}" --clobber
+          else
+            gh release create "${RELEASE_TAG}" "${JAR}" "${CHECKSUM}" \
+              --draft \
+              --verify-tag \
+              --generate-notes \
+              --title "SimpleElevator ${RELEASE_VERSION}"
+          fi
+      - name: Publish immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: gh release edit "${RELEASE_TAG}" --draft=false --verify-tag
+      - name: Verify release state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          test "$(gh release view "${RELEASE_TAG}" --json isDraft --jq '.isDraft')" = "false"
+          test "$(gh release view "${RELEASE_TAG}" --json isImmutable --jq '.isImmutable')" = "true"

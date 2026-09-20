@@ -1,0 +1,104 @@
+[tools]
+java = "temurin-17"
+node = "24"
+"pypi:yamllint" = "1.37.1"
+"npm:markdownlint-cli2" = "0.23.2"
+# Renovateの依存するlibzip 3.2.2は旧版3.2.0にあったprovenance情報が確認できず、
+# miseのtrustPolicy=no-downgradeで止まるため、当該バージョンだけ例外にする。
+"npm:renovate" = { version = "44.103.6", trust_policy_excludes = [
+  "@yarnpkg/libzip@3.2.2",
+] }
+"github:koki-develop/ghasec" = "0.17.0"
+
+[tasks.build]
+description = "Build the plugin"
+run = "./gradlew build --no-daemon"
+run_windows = "gradlew.bat build --no-daemon"
+
+[tasks.test]
+description = "Run tests"
+run = "./gradlew test"
+run_windows = "gradlew.bat test"
+
+[tasks.lint-yaml]
+description = "Lint YAML files"
+run = "yamllint --format github --config-file .github/.yamllint.yaml .github src/main/resources"
+
+[tasks.lint-markdown]
+description = "Lint Markdown files"
+run = 'markdownlint-cli2 "**/*.md"'
+run_windows = 'markdownlint-cli2 "**/*.md"'
+
+[tasks.lint-gha]
+description = "Scan GitHub Actions workflows"
+run = "ghasec"
+
+[tasks.validate-renovate]
+description = "Validate Renovate configuration"
+run = "renovate-config-validator --strict"
+
+[tasks.release-tag]
+description = "Create a signed release tag"
+usage = '''
+arg "<version>" help="Release version such as 1.0.0"
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "release-tag requires a Git-colocated checkout with a configured signing key" >&2
+  exit 1
+fi
+
+version="${usage_version?}"
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "version must have the form MAJOR.MINOR.PATCH: $version" >&2
+  exit 1
+fi
+
+tag="v${version}"
+if git show-ref --verify --quiet "refs/tags/${tag}"; then
+  echo "tag already exists: ${tag}" >&2
+  exit 1
+fi
+
+git tag -s "$tag" -m "Release $tag"
+'''
+
+[tasks.release-push]
+description = "Push an existing signed release tag"
+usage = '''
+arg "<version>" help="Release version such as 1.0.0"
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "release-push requires a Git-colocated checkout with an origin remote" >&2
+  exit 1
+fi
+
+version="${usage_version?}"
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "version must have the form MAJOR.MINOR.PATCH: $version" >&2
+  exit 1
+fi
+
+tag="v${version}"
+if ! git show-ref --verify --quiet "refs/tags/${tag}"; then
+  echo "tag does not exist: ${tag}" >&2
+  exit 1
+fi
+if [[ "$(git cat-file -t "refs/tags/${tag}")" != "tag" ]]; then
+  echo "tag is not annotated: ${tag}" >&2
+  exit 1
+fi
+if ! git remote get-url origin >/dev/null 2>&1; then
+  echo "origin remote is not configured" >&2
+  exit 1
+fi
+
+git push origin "$tag"
+'''

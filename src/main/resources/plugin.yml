@@ -1,0 +1,12 @@
+name: SimpleElevator
+version: '${version}'
+main: click.seichi.simpleelevator.SimpleElevator
+api-version: '1.18'
+description: Move players between vertically aligned elevator platforms.
+permissions:
+  elevator.up:
+    description: Allows the player to use elevators upwards.
+    default: true
+  elevator.down:
+    description: Allows the player to use elevators downwards.
+    default: true

@@ -1,0 +1,71 @@
+name: Lint Markdown
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.md"
+      - "mise.toml"
+      - ".github/workflows/markdown.yaml"
+  pull_request:
+    paths:
+      - "**/*.md"
+      - "mise.toml"
+      - ".github/workflows/markdown.yaml"
+permissions: {}
+jobs:
+  lint:
+    name: Lint Markdown
+    timeout-minutes: 3
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        with:
+          version: '2026.9.11'
+          cache: true
+      - name: Lint Markdown
+        id: markdownlint
+        continue-on-error: true
+        run: mise run --raw lint-markdown
+      - name: Generate report
+        if: github.event_name == 'pull_request'
+        env:
+          MARKDOWNLINT_OUTCOME: ${{ steps.markdownlint.outcome }}
+        run: |
+          {
+            echo '<!-- markdownlint -->'
+            if [[ "$MARKDOWNLINT_OUTCOME" == "success" ]]; then
+              echo '## :white_check_mark: Markdown lint — no issues found'
+            else
+              echo '## :warning: Markdown lint — issues found'
+              echo
+              echo 'See the workflow logs for details.'
+            fi
+          } | tee /tmp/markdownlint-result.md
+      - name: Find existing PR comment
+        if: github.event_name == 'pull_request'
+        id: fc
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "<!-- markdownlint -->"
+      - name: Create or update PR comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: /tmp/markdownlint-result.md
+          edit-mode: replace
+      - name: Fail on issues
+        if: always() && steps.markdownlint.outcome == 'failure'
+        run: exit 1

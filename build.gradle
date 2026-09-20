@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+    id 'checkstyle'
+    id 'com.diffplug.spotless' version '8.10.2'
+}
+
+group = 'click.seichi'
+version = providers.gradleProperty('releaseVersion').orElse('0.0.0-SNAPSHOT').get()
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc'
+        url = uri('https://repo.papermc.io/repository/maven-public/')
+    }
+}
+
+dependencies {
+    implementation 'io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.18:2.85.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.8.2'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+checkstyle {
+    toolVersion = '12.3.1'
+    configFile = file('.github/checkstyle.xml')
+}
+
+spotless {
+    java {
+        googleJavaFormat('1.28.0')
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('spotlessCheck')
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    maxParallelForks = 1
+}
+
+processResources {
+    def resourceProperties = [version: project.version]
+    inputs.properties(resourceProperties)
+
+    filesMatching('plugin.yml') {
+        expand(resourceProperties)
+    }
+}

@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="error"/>
+
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!-- package/import宣言とURLは長くなりやすいため、行長の検査対象外にする。 -->
+    <module name="LineLength">
+        <property name="max" value="100"/>
+        <property name="ignorePattern"
+                  value="^package.*|^import.*|https?://|ftp://"/>
+    </module>
+
+    <module name="TreeWalker">
+        <module name="OuterTypeFilename"/>
+        <module name="AvoidStarImport"/>
+        <module name="NeedBraces"/>
+        <module name="LeftCurly"/>
+        <module name="RightCurly"/>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround">
+            <!-- 空の構造を許容する方針のため、空要素に関する検査は緩和する。 -->
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyLambdas" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLoops" value="true"/>
+            <property name="allowEmptySwitchBlockStatements" value="true"/>
+        </module>
+        <module name="OneStatementPerLine"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="ModifierOrder"/>
+        <module name="MethodParamPad"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="ParenPad"/>
+        <module name="OperatorWrap"/>
+        <module name="AnnotationLocation"/>
+        <module name="UnusedImports"/>
+
+        <module name="PackageName"/>
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="ConstantName"/>
+
+        <module name="Indentation">
+            <property name="basicOffset" value="2"/>
+            <property name="braceAdjustment" value="2"/>
+            <property name="caseIndent" value="2"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="4"/>
+            <property name="arrayInitIndent" value="2"/>
+        </module>
+    </module>
+</module>

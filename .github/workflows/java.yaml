@@ -1,0 +1,65 @@
+name: Build and test Java codes
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+permissions: {}
+jobs:
+  build:
+    name: Build and check
+    timeout-minutes: 10
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        with:
+          version: '2026.9.11'
+          cache: true
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Build and check
+        id: gradle
+        continue-on-error: true
+        run: mise run build
+      - name: Generate report
+        if: github.event_name == 'pull_request'
+        env:
+          GRADLE_OUTCOME: ${{ steps.gradle.outcome }}
+        run: |
+          {
+            echo '<!-- gradle -->'
+            if [[ "$GRADLE_OUTCOME" == "success" ]]; then
+              echo '## :white_check_mark: Gradle build — passed'
+            else
+              echo '## :warning: Gradle build — failed'
+              echo
+              echo 'See the workflow logs for details.'
+            fi
+          } | tee /tmp/gradle-result.md
+      - name: Find existing PR comment
+        if: github.event_name == 'pull_request'
+        id: fc
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "<!-- gradle -->"
+      - name: Create or update PR comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: /tmp/gradle-result.md
+          edit-mode: replace
+      - name: Fail on issues
+        if: always() && steps.gradle.outcome == 'failure'
+        run: exit 1
