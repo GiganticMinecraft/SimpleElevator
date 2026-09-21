@@ -81,8 +81,6 @@ Windows でも同じmiseタスクを使用できます。
 
 ビルドされた JAR は `build/libs/` に出力されます。
 
-`plugin.yml` の Paper/Bukkit 固有の項目検証は `mise run test` に含まれます。
-
 ### miseを使わない場合
 
 JDK 17 を別途用意し、`JAVA_HOME` または `PATH` を設定してください。YAML lintにはPythonの仮想環境を使用します。
@@ -111,7 +109,6 @@ Windowsでは、`py -m venv .venv`で仮想環境を作成します。
 ## リリース
 
 リリースは、署名付き `vX.Y.Z` タグの push を起点に GitHub Actions が実行します。
-リポジトリ管理者は、GitHub リポジトリ設定の Releases で Immutable releases を有効にしてください。
 
 リリース担当者は、署名鍵が設定された環境で次を実行します。
 署名付き Git tag を作成するため、これらの task は Git backend が有効な checkout で実行してください。
@@ -132,15 +129,15 @@ Draft Release の作成・公開を行います。公開された Release は Im
 
 Release には次のファイルが添付されます。
 
-- `SimpleElevator-<version>.jar`
-- `SimpleElevator-<version>.jar.sha256`
+- `SimpleElevator-v<version>.jar`
+- `SimpleElevator-v<version>.jar.sha256`
 
-JAR の検証には次を使用できます（`OWNER/REPOSITORY` は対象リポジトリに置き換えてください）。
+JAR の検証には次を使用できます。
 
 ```shell
-sha256sum -c SimpleElevator-1.0.0.jar.sha256
-gh attestation verify SimpleElevator-1.0.0.jar -R OWNER/REPOSITORY
-gh release verify v1.0.0 -R OWNER/REPOSITORY
+sha256sum -c SimpleElevator-v1.0.0.jar.sha256
+gh attestation verify SimpleElevator-v1.0.0.jar -R GiganticMinecraft/SimpleElevator
+gh release verify v1.0.0 -R GiganticMinecraft/SimpleElevator
 ```
 
 ## CI
@@ -159,3 +156,7 @@ Pull Request では次のチェックが実行されます。
 
 - [基本設計](docs/BASIC_DESIGN.md)
 - [詳細設計](docs/DETAIL_DESIGN.md)
+
+## ライセンス
+
+[GPLv3 License](./LICENSE)
