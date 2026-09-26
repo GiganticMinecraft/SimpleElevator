@@ -1,7 +1,7 @@
 [tools]
 java = "temurin-17"
 node = "24"
-"pypi:yamllint" = "1.37.1"
+"pypi:yamllint" = "1.38.0"
 "npm:markdownlint-cli2" = "0.23.2"
 # Renovateの依存するlibzip 3.2.2は旧版3.2.0にあったprovenance情報が確認できず、
 # miseのtrustPolicy=no-downgradeで止まるため、当該バージョンだけ例外にする。
