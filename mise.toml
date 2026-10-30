@@ -8,7 +8,7 @@ node = "24"
 "npm:renovate" = { version = "44.167.1", trust_policy_excludes = [
   "@yarnpkg/libzip@3.2.2",
 ] }
-"github:koki-develop/ghasec" = "0.17.0"
+"github:koki-develop/ghasec" = "0.18.0"
 
 [tasks.build]
 description = "Build the plugin"
