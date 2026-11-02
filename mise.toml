@@ -1,6 +1,6 @@
 [tools]
 java = "temurin-17"
-node = "24"
+node = "26"
 "pypi:yamllint" = "1.38.0"
 "npm:markdownlint-cli2" = "0.24.0"
 # Renovateの依存するlibzip 3.2.2は旧版3.2.0にあったprovenance情報が確認できず、
